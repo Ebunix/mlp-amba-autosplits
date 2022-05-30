@@ -1,6 +1,6 @@
 state("MLP") 
 {
-    bool isLoading: "UnityPlayer.dll", 0x019B4878, 0xD0, 0x8, 0x60, 0x40, 0x18, 0xA0;
+    bool isLoading: "UnityPlayer.dll", 0x019B4878, 0xD0, 0x8, 0x60, 0xA0, 0x18, 0xA0;
 }
 
 startup
@@ -41,7 +41,7 @@ split
     bool shouldSplit = false;
     if (current.isLoading) {
         vars.loadCount++;
-        shouldSplit = true;
+        shouldSplit = vars.loadCount > 1;
     }
 
     vars.nowLoading = current.isLoading;
