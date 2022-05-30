@@ -5,45 +5,29 @@ state("MLP")
 
 startup
 {
-    vars.nowLoading = false;
+    vars.loadCount = 0;
+}
+
+onReset
+{
     vars.loadCount = 0;
 }
 
 start
 {
-    if (current.isLoading)
+    return !old.isLoading && current.isLoading;
+}
+
+split
+{
+    if (!old.isLoading && current.isLoading)
     {
-        vars.loadCount = 0;
+        vars.loadCount++;
+        return vars.loadCount > 1;
     }
-    return current.isLoading;
 }
 
 isLoading 
 {
     return current.isLoading;
-}
-
-update
-{
-    if (vars.nowLoading && !current.isLoading) 
-    {
-        vars.nowLoading = false;
-    }
-}
-
-split
-{
-    if (vars.nowLoading)
-    {
-        return false;
-    }
-    
-    bool shouldSplit = false;
-    if (current.isLoading) {
-        vars.loadCount++;
-        shouldSplit = vars.loadCount > 1;
-    }
-
-    vars.nowLoading = current.isLoading;
-    return shouldSplit;
 }
