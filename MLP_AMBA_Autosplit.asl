@@ -7,15 +7,6 @@ startup
 	vars.Unity.LoadSceneManager = true;
 }
 
-onStart
-{}
-
-onSplit
-{}
-
-onReset
-{}
-
 init
 {
 	vars.Unity.TryOnLoad = (Func<dynamic, bool>)(helper =>
@@ -59,12 +50,6 @@ split
 	}
 	return false;
 }
-
-reset
-{}
-
-gameTime
-{}
 
 isLoading
 {
