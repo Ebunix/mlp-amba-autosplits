@@ -2,86 +2,81 @@ state("MLP") {}
 
 startup
 {
+	vars.Log = (Action<object>)(output => print("[A Maretime Bay Adventure] " + output));
 	vars.Unity = Assembly.Load(File.ReadAllBytes(@"Components\UnityASL.bin")).CreateInstance("UnityASL.Unity");
+	vars.Unity.LoadSceneManager = true;
 }
+
+onStart
+{}
+
+onSplit
+{}
+
+onReset
+{}
 
 init
 {
 	vars.Unity.TryOnLoad = (Func<dynamic, bool>)(helper =>
 	{
-        vars.baseSystem = helper.GetClass("Assembly-CSharp", "BaseSystem");
-        vars.baseSystemSingleton = helper.GetParent(helper.GetParent(vars.baseSystem));
-        vars.sceneLoadFader = helper.GetClass("Assembly-CSharp", "SceneLoadFader");
-
-        vars.asyncOpHandle = helper.GetClass("Unity.ResourceManager", "UnityEngine.ResourceManagement.AsyncOperations.AsyncOperationHandle`1");
-        vars.asyncOpBase = helper.GetClass("Unity.ResourceManager", "UnityEngine.ResourceManagement.AsyncOperations.AsyncOperationBase`1");
-
-        vars.asyncOp = helper.GetClass("UnityEngine.CoreModule", "UnityEngine.AsyncOperation");
-        vars.sceneInstance = helper.GetClass("Unity.ResourceManager", "UnityEngine.ResourceManagement.ResourceProviders.SceneInstance");
-
-        vars.Unity.Make<bool>(
-            vars.baseSystemSingleton.Static, vars.baseSystemSingleton["_instance"],
-            vars.baseSystem["sceneLoadFader"],
-            vars.sceneLoadFader["isLoading"]
-        ).Name = "load";
-        
-//        for (int i = 0; i < 0x20; i++) {
-//            vars.Unity.Make<byte>(
-//                vars.baseSystemSingleton.Static, vars.baseSystemSingleton["_instance"]
-//                ,vars.baseSystem["sceneLoadFader"]
-//                ,vars.sceneLoadFader["addressableScene"]
-//                ,vars.asyncOpHandle["m_Version"]
-//                ,vars.asyncOpBase["Result"]
-//                ,vars.sceneInstance["m_Operation"] + i
-//            ).Name = "init" + i;
-//        }
-        
-        for (int i = 0; i < 0x20; i++) {
-            vars.Unity.Make<int>(
-                vars.baseSystemSingleton.Static, vars.baseSystemSingleton["_instance"],
-                vars.baseSystem["sceneLoadFader"],
-                vars.sceneLoadFader["addressableScene"],
-                vars.asyncOpHandle["m_Version"],
-                vars.asyncOpBase["Result"],
-                vars.sceneInstance["m_Operation"] + 28 // Seems to be -1 usually, switched to 0 when operating
-            ).Name = "init";
-        }
-
-        vars.done = true;
+		var bs = helper.GetClass("Assembly-CSharp", "BaseSystem");
+		var bss = helper.GetParent(helper.GetParent(bs));
+		var slf = helper.GetClass("Assembly-CSharp", "SceneLoadFader");
+		vars.Unity.Make<bool>(bss.Static, bss["_instance"], bs["sceneLoadFader"], slf["isLoading"]).Name = "isLoading";
 		return true;
 	});
 
-    vars.done = false;
 	vars.Unity.Load(game);
-    vars.changedToLoading = false;
-}
-
-start
-{
-    return vars.changedToLoading;
-}
-
-isLoading 
-{
-    return vars.Unity["load"].Current || (vars.Unity["init"].Current != -1);
+	current.DidSplit = false;
 }
 
 update
 {
-    if (!vars.done) return false;
+	if (!vars.Unity.Loaded) return false;
 
-    vars.Unity.Update();
-    vars.changedToLoading = vars.Unity["load"].Current && !vars.Unity["load"].Old;
+	vars.Unity.Update();
+	current.Loading = vars.Unity["isLoading"].Current;
+	if (current.DidSplit && !current.Loading)
+	{
+		current.DidSplit = false;
+	}
+}
 
-//    string text = "";
-    
-//    for (int i = 0; i < 0x20; i++) {
-//        text += vars.Unity["init" + i].Current.ToString("X2") + " ";
-//    }
-//    print("Init " + text + "| Loading " + vars.Unity["load"].Current + " | Init " + vars.Unity["init"].Current);
+start
+{
+	return vars.Unity.Scenes.Active.Name == "MenuScene" && current.Loading;
 }
 
 split
 {
-    return vars.changedToLoading;
+	var name = vars.Unity.Scenes.Active.Name;
+	if (current.DidSplit || name == "IntroScene" || name == "MenuScene") return false;
+	if (current.Loading) 
+	{
+		current.DidSplit = true;
+		return true;
+	}
+	return false;
+}
+
+reset
+{}
+
+gameTime
+{}
+
+isLoading
+{
+	return current.Loading || vars.Unity.Scenes.Count > 1;
+}
+
+exit
+{
+	vars.Unity.Reset();
+}
+
+shutdown
+{
+	vars.Unity.Reset();
 }
